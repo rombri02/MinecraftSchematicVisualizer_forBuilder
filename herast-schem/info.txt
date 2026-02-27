@@ -1,0 +1,11 @@
+Minecraft Hera |Greek Mythology| Statue Free
+
+Dimensions: 88×127×48  Length×Height×Width (+15800 Blocks and items)
+
+Format : .nbt .litematic .schem
+
+The list of blocks can be viewed using the Litematica mod.
+
+There is NO tutorial. It was tested and prepared with the Java version.
+
+Credit: MazaVili

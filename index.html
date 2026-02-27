@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schematic Viewer — Minecraft Layer Visualizer</title>
+    <meta name="description"
+        content="Upload and view Minecraft .schem and .litematic schematics layer by layer from a top-down perspective.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧱</text></svg>">
+</head>
+
+<body>
+    <div id="app">
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+            <div class="app-title" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="icon">🧱</span>
+                    <h1>Schematic Viewer</h1>
+                </div>
+                <button id="btn-theme-toggle" class="icon-toggle" title="Toggle Light/Dark Theme">☀️</button>
+            </div>
+
+            <!-- Upload -->
+            <div class="panel">
+                <div class="panel-title">Upload Schematic</div>
+                <div class="drop-zone" id="drop-zone">
+                    <span class="drop-icon">📂</span>
+                    <span class="drop-text">Drop file here</span>
+                    <span class="drop-hint">.schem · .litematic</span>
+                    <input type="file" id="file-input" accept=".schem,.litematic">
+                </div>
+                <div id="file-badge-container"></div>
+            </div>
+
+            <!-- Schematic Info -->
+            <div class="panel" id="info-panel" style="display: none;">
+                <div class="panel-title">Schematic Info</div>
+                <div class="info-grid">
+                    <div class="info-item full-width">
+                        <span class="info-label">Name</span>
+                        <span class="info-value" id="info-name">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Width (X)</span>
+                        <span class="info-value" id="info-width">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Length (Z)</span>
+                        <span class="info-value" id="info-length">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Height (Y)</span>
+                        <span class="info-value" id="info-height">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Blocks</span>
+                        <span class="info-value" id="info-blocks">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layer Controls -->
+            <div class="panel" id="layer-panel" style="display: none;">
+                <div class="panel-title">Layer Navigation</div>
+                <div class="layer-controls">
+                    <div class="layer-header">
+                        <span class="layer-label">Y Level</span>
+                        <span class="layer-value" id="layer-display">0 / 0</span>
+                    </div>
+                    <input type="range" class="layer-slider" id="layer-slider" min="0" max="0" value="0">
+                    <div class="layer-nav">
+                        <button id="btn-layer-down">▼ Down</button>
+                        <button id="btn-layer-up">▲ Up</button>
+                    </div>
+                    <div class="keyboard-hint">
+                        <kbd>↑</kbd> <kbd>↓</kbd> to navigate · <kbd>Scroll</kbd> to zoom
+                    </div>
+                </div>
+            </div>
+
+            <!-- Block Tooltip -->
+            <div class="panel" id="tooltip-panel" style="display: none;">
+                <div class="panel-title">Hovered Block</div>
+                <div class="tooltip-info" id="tooltip-info">
+                    <span class="tooltip-placeholder">Hover over a block to inspect</span>
+                </div>
+            </div>
+
+            <!-- View Controls -->
+            <div class="panel" id="view-panel" style="display: none;">
+                <div class="panel-title">View</div>
+                <div class="view-controls">
+                    <button class="toggle-btn active" id="btn-view-2d">2D Layers</button>
+                    <button class="toggle-btn" id="btn-view-3d">3D Orbit</button>
+                </div>
+                <div class="view-actions" id="view-actions-2d" style="margin-top: 12px; display: flex; gap: 8px;">
+                    <button id="btn-reset-view">⟲ Reset View</button>
+                    <button id="btn-toggle-grid">▦ Toggle Grid</button>
+                </div>
+                <div class="view-actions" id="view-actions-3d"
+                    style="margin-top: 12px; display: none; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button id="btn-reset-camera-3d">⟲ Reset Camera</button>
+                    <label
+                        style="color: var(--text-muted); font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" id="chk-highlight-3d">
+                        Illuminate Layer
+                    </label>
+                </div>
+            </div>
+
+            <!-- Materials List -->
+            <div class="panel" id="materials-panel" style="display: none;">
+                <div class="panel-title">Materials <span class="mat-total-badge" id="mat-total-badge"></span></div>
+                <input type="text" class="mat-search" id="mat-search" placeholder="🔍  Filter blocks…">
+                <div class="mat-list" id="mat-list"></div>
+            </div>
+        </aside>
+
+        <!-- ── Main Canvas ── -->
+        <main class="canvas-area" id="canvas-area">
+            <!-- 2D Canvas -->
+            <canvas id="schematic-canvas"></canvas>
+
+            <!-- 3D Container -->
+            <div id="canvas-3d-container" style="display: none; width: 100%; height: 100%;">
+                <canvas id="schematic-canvas-3d"></canvas>
+                <div class="loading-overlay-3d" id="loading-3d" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div style="margin-top: 1rem; font-weight: 500;">Building 3D Geometry...</div>
+                </div>
+            </div>
+
+            <div class="empty-state" id="empty-state">
+                <span class="empty-icon">🗺️</span>
+                <span class="empty-text">No schematic loaded</span>
+                <span class="empty-hint">Upload a .schem or .litematic file to get started</span>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
